@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Weather Data Warehouse Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        background: #f8fafc;
+      }
+
+      h2 {
+        margin-bottom: 10px;
+      }
+
+      .controls {
+        margin-bottom: 24px;
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+
+      select,
+      button {
+        padding: 6px 12px;
+        border-radius: 4px;
+        border: 1px solid #d0d7de;
+        background: #fff;
+        font-size: 14px;
+      }
+
+      button {
+        cursor: pointer;
+        background: #2563eb;
+        color: #fff;
+        border-color: #1d4ed8;
+      }
+
+      .chart-container {
+        width: min(900px, 100%);
+        background: #fff;
+        padding: 16px;
+        border-radius: 8px;
+        margin-bottom: 32px;
+        box-shadow: 0 10px 15px -3px rgba(15, 23, 42, 0.1),
+          0 4px 6px -4px rgba(15, 23, 42, 0.1);
+      }
+    </style>
+  </head>
+  <body>
+    <h2>Dashboard Thời Tiết (Data Warehouse)</h2>
+
+    <div class="controls">
+      <label for="citySelect">Chọn thành phố:</label>
+      <select id="citySelect"></select>
+      <button id="loadBtn">Tải dữ liệu</button>
+    </div>
+
+    <div class="chart-container">
+      <h3>Nhiệt độ theo ngày</h3>
+      <canvas id="tempChart"></canvas>
+    </div>
+
+    <div class="chart-container">
+      <h3>Độ ẩm theo ngày</h3>
+      <canvas id="humidityChart"></canvas>
+    </div>
+
+    <script>
+      const citySelect = document.getElementById("citySelect");
+      const loadBtn = document.getElementById("loadBtn");
+
+      let tempChartInstance = null;
+      let humidityChartInstance = null;
+
+      function formatDateLabel(isoDate) {
+        const d = new Date(isoDate);
+        if (Number.isNaN(d.getTime())) return isoDate;
+        return d.toLocaleDateString("vi-VN", {
+          day: "2-digit",
+          month: "2-digit",
+        });
+      }
+
+      async function loadCities() {
+        const res = await fetch("/api/cities");
+        const data = await res.json();
+
+        citySelect.innerHTML = "";
+        data.forEach((item) => {
+          const opt = document.createElement("option");
+          opt.value = item.city;
+          opt.textContent = item.city;
+          citySelect.appendChild(opt);
+        });
+      }
+
+      async function loadData() {
+        const city = citySelect.value;
+        if (!city) return;
+
+        const res = await fetch(
+          `/api/temperature?city=${encodeURIComponent(city)}`
+        );
+        const data = await res.json();
+
+        const labels = data.map((row) => formatDateLabel(row.date));
+        const temps = data.map((row) => row.temperature);
+        const hums = data.map((row) => row.humidity);
+
+        if (tempChartInstance) tempChartInstance.destroy();
+        if (humidityChartInstance) humidityChartInstance.destroy();
+
+        const tempCtx = document.getElementById("tempChart").getContext("2d");
+        tempChartInstance = new Chart(tempCtx, {
+          type: "line",
+          data: {
+            labels,
+            datasets: [
+              {
+                label: `Nhiệt độ 2m (°C) - ${city}`,
+                data: temps,
+                borderColor: "rgba(239, 68, 68, 1)",
+                backgroundColor: "rgba(239, 68, 68, 0.2)",
+                tension: 0.25,
+                pointRadius: 3,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            interaction: {
+              intersect: false,
+              mode: "index",
+            },
+            scales: {
+              x: {
+                title: { display: true, text: "Ngày" },
+              },
+              y: {
+                title: { display: true, text: "°C" },
+              },
+            },
+          },
+        });
+
+        const humCtx = document
+          .getElementById("humidityChart")
+          .getContext("2d");
+        humidityChartInstance = new Chart(humCtx, {
+          type: "bar",
+          data: {
+            labels,
+            datasets: [
+              {
+                label: `Độ ẩm (%) - ${city}`,
+                data: hums,
+                backgroundColor: "rgba(37, 99, 235, 0.6)",
+                borderColor: "rgba(37, 99, 235, 1)",
+                borderWidth: 1,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            scales: {
+              x: {
+                title: { display: true, text: "Ngày" },
+              },
+              y: {
+                title: { display: true, text: "%" },
+                beginAtZero: true,
+                max: 100,
+              },
+            },
+          },
+        });
+      }
+
+      loadBtn.addEventListener("click", async () => {
+        await loadData();
+      });
+
+      (async () => {
+        await loadCities();
+        await loadData();
+      })();
+    </script>
+  </body>
+</html>
