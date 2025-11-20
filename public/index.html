@@ -4,77 +4,521 @@
     <meta charset="UTF-8" />
     <title>Weather Data Warehouse Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <style>
-      body {
-        font-family: Arial, sans-serif;
-        margin: 20px;
-        background: #f8fafc;
+      :root {
+        --bg: #0f172a;
+        --bg-soft: #111827;
+        --card: #020617;
+        --accent: #38bdf8;
+        --accent-soft: rgba(56, 189, 248, 0.12);
+        --danger: #f97373;
+        --text: #e5e7eb;
+        --text-muted: #9ca3af;
+        --border: #1e293b;
+        --radius-lg: 14px;
+        --radius-md: 10px;
+        --shadow-soft: 0 14px 30px rgba(15, 23, 42, 0.6);
       }
 
-      h2 {
-        margin-bottom: 10px;
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        color: var(--text);
+        background: radial-gradient(
+            circle at 0 0,
+            rgba(56, 189, 248, 0.18),
+            transparent 55%
+          ),
+          radial-gradient(
+            circle at 100% 100%,
+            rgba(94, 234, 212, 0.14),
+            transparent 55%
+          ),
+          var(--bg);
+      }
+
+      .page {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 24px 16px 40px;
+      }
+
+      .topbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        gap: 16px;
+      }
+
+      .title-block h1 {
+        font-size: 1.6rem;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .title-chip {
+        font-size: 0.75rem;
+        padding: 2px 8px;
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.4);
+        color: var(--text-muted);
+      }
+
+      .title-block p {
+        margin: 6px 0 0;
+        color: var(--text-muted);
+        font-size: 0.9rem;
+      }
+
+      .badge-online {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.8rem;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: rgba(22, 163, 74, 0.1);
+        color: #4ade80;
+      }
+
+      .badge-online span {
+        display: inline-block;
+        width: 7px;
+        height: 7px;
+        background: #22c55e;
+        border-radius: 999px;
+        box-shadow: 0 0 0 5px rgba(34, 197, 94, 0.25);
       }
 
       .controls {
-        margin-bottom: 24px;
+        margin-bottom: 18px;
         display: flex;
-        gap: 12px;
         flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+        padding: 14px 16px;
+        border-radius: var(--radius-lg);
+        background: linear-gradient(
+          135deg,
+          rgba(15, 23, 42, 0.96),
+          rgba(15, 23, 42, 0.92)
+        );
+        border: 1px solid rgba(148, 163, 184, 0.25);
+        box-shadow: 0 16px 45px rgba(15, 23, 42, 0.65);
+      }
+
+      .controls-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
         align-items: center;
       }
 
+      label {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+      }
+
       select,
-      button {
-        padding: 6px 12px;
-        border-radius: 4px;
-        border: 1px solid #d0d7de;
-        background: #fff;
-        font-size: 14px;
+      input[type="date"] {
+        padding: 7px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: rgba(15, 23, 42, 0.9);
+        color: var(--text);
+        font-size: 0.9rem;
+        min-width: 150px;
+        outline: none;
+      }
+
+      select:focus,
+      input[type="date"]:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.5);
       }
 
       button {
+        padding: 8px 16px;
+        border-radius: 999px;
+        border: 0;
+        font-size: 0.9rem;
         cursor: pointer;
-        background: #2563eb;
-        color: #fff;
-        border-color: #1d4ed8;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: linear-gradient(
+          135deg,
+          #38bdf8,
+          #6366f1
+        );
+        color: white;
+        box-shadow: 0 12px 30px rgba(37, 99, 235, 0.45);
       }
 
-      .chart-container {
-        width: min(900px, 100%);
-        background: #fff;
-        padding: 16px;
-        border-radius: 8px;
-        margin-bottom: 32px;
-        box-shadow: 0 10px 15px -3px rgba(15, 23, 42, 0.1),
-          0 4px 6px -4px rgba(15, 23, 42, 0.1);
+      button.secondary {
+        background: rgba(15, 23, 42, 1);
+        color: var(--text-muted);
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        box-shadow: none;
+      }
+
+      button:hover {
+        filter: brightness(1.05);
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(0, 2fr) minmax(0, 1.3fr);
+        gap: 18px;
+      }
+
+      @media (max-width: 900px) {
+        .layout {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+
+      .card {
+        background: rgba(15, 23, 42, 0.98);
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border);
+        padding: 14px 16px 18px;
+        box-shadow: var(--shadow-soft);
+      }
+
+      .card h3 {
+        margin: 0 0 8px;
+        font-size: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .card h3 span {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+      }
+
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+
+      @media (max-width: 900px) {
+        .stats-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      .stat-card {
+        background: radial-gradient(
+          circle at top left,
+          rgba(56, 189, 248, 0.25),
+          rgba(15, 23, 42, 1)
+        );
+        border-radius: var(--radius-md);
+        padding: 10px 11px;
+        border: 1px solid rgba(148, 163, 184, 0.4);
+      }
+
+      .stat-label {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        margin-bottom: 6px;
+      }
+
+      .stat-value {
+        font-size: 1.1rem;
+        font-weight: 600;
+      }
+
+      .stat-sub {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        margin-top: 2px;
+      }
+
+      canvas {
+        width: 100% !important;
+        height: 260px !important;
+      }
+
+      .table-wrapper {
+        max-height: 280px;
+        overflow: auto;
+        margin-top: 8px;
+        border-radius: var(--radius-md);
+        border: 1px solid rgba(30, 64, 175, 0.5);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.86rem;
+      }
+
+      thead {
+        position: sticky;
+        top: 0;
+        background: #020617;
+        z-index: 1;
+      }
+
+      th,
+      td {
+        padding: 7px 10px;
+        text-align: left;
+      }
+
+      th {
+        font-weight: 500;
+        color: var(--text-muted);
+        border-bottom: 1px solid #1e293b;
+      }
+
+      tbody tr:nth-child(even) {
+        background: rgba(15, 23, 42, 0.85);
+      }
+
+      tbody tr:hover {
+        background: rgba(15, 23, 42, 0.95);
+      }
+
+      .pill {
+        padding: 2px 7px;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        background: var(--accent-soft);
+        color: var(--accent);
+      }
+
+      .hint {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        margin-top: 4px;
+      }
+
+      .loading {
+        display: none;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 10px;
+        color: var(--text-muted);
+      }
+
+      .loading.active {
+        display: flex;
+      }
+
+      .spinner {
+        width: 16px;
+        height: 16px;
+        border: 2px solid rgba(56, 189, 248, 0.3);
+        border-top: 2px solid var(--accent);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+
+      .error-message {
+        display: none;
+        background: rgba(239, 68, 68, 0.1);
+        color: var(--danger);
+        padding: 8px 12px;
+        border-radius: var(--radius-md);
+        margin: 8px 0;
+        border-left: 3px solid var(--danger);
+        font-size: 0.85rem;
+      }
+
+      .error-message.active {
+        display: block;
       }
     </style>
   </head>
   <body>
-    <h2>Dashboard Thời Tiết (Data Warehouse)</h2>
+    <div class="page">
+      <header class="topbar">
+        <div class="title-block">
+          <h1>
+            Weather Data Warehouse
+            <span class="title-chip">Dashboard v1</span>
+          </h1>
+          <p>Theo dõi & phân tích dữ liệu thời tiết từ kho dữ liệu của bạn.</p>
+        </div>
+        <div class="badge-online">
+          <span></span> Live from MySQL DW
+        </div>
+      </header>
 
-    <div class="controls">
-      <label for="citySelect">Chọn thành phố:</label>
-      <select id="citySelect"></select>
-      <button id="loadBtn">Tải dữ liệu</button>
-    </div>
+      <section class="controls">
+        <div class="controls-group">
+          <label for="citySelect">Thành phố</label>
+          <select id="citySelect"></select>
+        </div>
 
-    <div class="chart-container">
-      <h3>Nhiệt độ theo ngày</h3>
-      <canvas id="tempChart"></canvas>
-    </div>
+        <div class="controls-group">
+          <label>Từ ngày</label>
+          <input type="date" id="fromDate" />
+          <label>Đến ngày</label>
+          <input type="date" id="toDate" />
+        </div>
 
-    <div class="chart-container">
-      <h3>Độ ẩm theo ngày</h3>
-      <canvas id="humidityChart"></canvas>
+        <div class="controls-group">
+          <button id="loadBtn">
+            🔄 Tải dữ liệu
+          </button>
+          <button id="exportBtn" class="secondary">
+            ⬇️ Xuất CSV
+          </button>
+        </div>
+      </section>
+
+      <div class="loading" id="loadingIndicator">
+        <div class="spinner"></div>
+        <span>Đang tải dữ liệu...</span>
+      </div>
+
+      <div class="error-message" id="errorMessage">
+        Đã xảy ra lỗi khi tải dữ liệu. Vui lòng thử lại sau.
+      </div>
+
+      <div class="layout">
+        <!-- Cột trái: cards + line chart + bảng -->
+        <div>
+          <section class="card">
+            <h3>
+              Thông tin hiện tại
+              <span id="currentTimeLabel" class="pill">—</span>
+            </h3>
+
+            <div class="stats-grid">
+              <div class="stat-card">
+                <div class="stat-label">Nhiệt độ hiện tại</div>
+                <div class="stat-value" id="currentTemp">—</div>
+                <div class="stat-sub">temperature_2m (°C)</div>
+              </div>
+
+              <div class="stat-card">
+                <div class="stat-label">Độ ẩm hiện tại</div>
+                <div class="stat-value" id="currentHum">—</div>
+                <div class="stat-sub">humidity_2m (%)</div>
+              </div>
+
+              <div class="stat-card">
+                <div class="stat-label">Nhiệt độ trung bình</div>
+                <div class="stat-value" id="avgTemp">—</div>
+                <div class="stat-sub">Trong toàn bộ khoảng dữ liệu</div>
+              </div>
+
+              <div class="stat-card">
+                <div class="stat-label">Khoản ngày có dữ liệu</div>
+                <div class="stat-value" id="daysCount">—</div>
+                <div class="stat-sub">Ngày có bản ghi</div>
+              </div>
+            </div>
+          </section>
+
+          <section class="card" style="margin-top: 14px">
+            <h3>
+              Nhiệt độ & độ ẩm theo ngày
+              <span>Line chart</span>
+            </h3>
+            <canvas id="mainChart"></canvas>
+
+            <div class="hint">
+              Gợi ý: dùng filter ngày để zoom vào khoảng thời gian cần phân tích.
+            </div>
+
+            <div class="table-wrapper" id="tableWrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Ngày</th>
+                    <th>Nhiệt độ (°C)</th>
+                    <th>Độ ẩm (%)</th>
+                    <th>Loaded at</th>
+                  </tr>
+                </thead>
+                <tbody id="dataTableBody"></tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+
+        <!-- Cột phải: so sánh nhiều city -->
+        <aside class="card">
+          <h3>
+            So sánh giữa các vị trí
+            <span>Bar chart</span>
+          </h3>
+
+          <div class="controls-group" style="margin-bottom: 8px">
+            <label for="compareSelect"
+              >Chọn nhiều thành phố để so sánh</label
+            >
+            <select id="compareSelect" multiple size="5"></select>
+          </div>
+          <div class="hint">
+            Giữ <b>Ctrl</b> (Windows) hoặc <b>Cmd</b> (macOS) để chọn nhiều
+            dòng.
+          </div>
+
+          <canvas id="compareChart" style="margin-top: 8px"></canvas>
+        </aside>
+      </div>
     </div>
 
     <script>
+      // DOM Elements
       const citySelect = document.getElementById("citySelect");
+      const compareSelect = document.getElementById("compareSelect");
       const loadBtn = document.getElementById("loadBtn");
+      const exportBtn = document.getElementById("exportBtn");
+      const fromDateInput = document.getElementById("fromDate");
+      const toDateInput = document.getElementById("toDate");
+      const loadingIndicator = document.getElementById("loadingIndicator");
+      const errorMessage = document.getElementById("errorMessage");
 
-      let tempChartInstance = null;
-      let humidityChartInstance = null;
+      // cards
+      const currentTempEl = document.getElementById("currentTemp");
+      const currentHumEl = document.getElementById("currentHum");
+      const currentTimeLabel = document.getElementById("currentTimeLabel");
+      const avgTempEl = document.getElementById("avgTemp");
+      const daysCountEl = document.getElementById("daysCount");
+      const tableBody = document.getElementById("dataTableBody");
+
+      let mainChartInstance = null;
+      let compareChartInstance = null;
+      let currentData = [];
+
+      // Set default dates
+      function setDefaultDates() {
+        const today = new Date();
+        const oneMonthAgo = new Date();
+        oneMonthAgo.setMonth(today.getMonth() - 1);
+        
+        fromDateInput.value = oneMonthAgo.toISOString().split('T')[0];
+        toDateInput.value = today.toISOString().split('T')[0];
+      }
 
       function formatDateLabel(isoDate) {
         const d = new Date(isoDate);
@@ -85,108 +529,319 @@
         });
       }
 
-      async function loadCities() {
-        const res = await fetch("/api/cities");
-        const data = await res.json();
-
-        citySelect.innerHTML = "";
-        data.forEach((item) => {
-          const opt = document.createElement("option");
-          opt.value = item.city;
-          opt.textContent = item.city;
-          citySelect.appendChild(opt);
-        });
+      function formatFull(isoDate) {
+        const d = new Date(isoDate);
+        if (Number.isNaN(d.getTime())) return isoDate;
+        return d.toLocaleString("vi-VN");
       }
 
-      async function loadData() {
+      // Show/hide loading and error
+      function showLoading() {
+        loadingIndicator.classList.add('active');
+        errorMessage.classList.remove('active');
+      }
+
+      function hideLoading() {
+        loadingIndicator.classList.remove('active');
+      }
+
+      function showError(message) {
+        errorMessage.textContent = message || 'Đã xảy ra lỗi khi tải dữ liệu. Vui lòng thử lại sau.';
+        errorMessage.classList.add('active');
+      }
+
+      async function loadCities() {
+        try {
+          // Try real API first, fallback to demo
+          let res = await fetch("/api/cities");
+          if (!res.ok) {
+            res = await fetch("/api/demo/cities");
+          }
+          const data = await res.json();
+
+          citySelect.innerHTML = "";
+          compareSelect.innerHTML = "";
+
+          data.forEach((item) => {
+            const opt = document.createElement("option");
+            opt.value = item.city;
+            opt.textContent = item.city;
+            citySelect.appendChild(opt);
+
+            const opt2 = opt.cloneNode(true);
+            compareSelect.appendChild(opt2);
+          });
+
+          // Auto-select first city
+          if (data.length > 0) {
+            citySelect.value = data[0].city;
+          }
+        } catch (error) {
+          console.error("Error loading cities:", error);
+          showError("Không thể tải danh sách thành phố");
+        }
+      }
+
+      async function loadCurrent() {
         const city = citySelect.value;
         if (!city) return;
 
-        const res = await fetch(
-          `/api/temperature?city=${encodeURIComponent(city)}`
-        );
-        const data = await res.json();
+        try {
+          let res = await fetch(`/api/current?city=${encodeURIComponent(city)}`);
+          if (!res.ok) {
+            res = await fetch(`/api/demo/current?city=${encodeURIComponent(city)}`);
+          }
+          const info = await res.json();
 
-        const labels = data.map((row) => formatDateLabel(row.date));
-        const temps = data.map((row) => row.temperature);
-        const hums = data.map((row) => row.humidity);
+          if (!info) {
+            currentTempEl.textContent = "—";
+            currentHumEl.textContent = "—";
+            currentTimeLabel.textContent = "No data";
+            return;
+          }
 
-        if (tempChartInstance) tempChartInstance.destroy();
-        if (humidityChartInstance) humidityChartInstance.destroy();
-
-        const tempCtx = document.getElementById("tempChart").getContext("2d");
-        tempChartInstance = new Chart(tempCtx, {
-          type: "line",
-          data: {
-            labels,
-            datasets: [
-              {
-                label: `Nhiệt độ 2m (°C) - ${city}`,
-                data: temps,
-                borderColor: "rgba(239, 68, 68, 1)",
-                backgroundColor: "rgba(239, 68, 68, 0.2)",
-                tension: 0.25,
-                pointRadius: 3,
-              },
-            ],
-          },
-          options: {
-            responsive: true,
-            interaction: {
-              intersect: false,
-              mode: "index",
-            },
-            scales: {
-              x: {
-                title: { display: true, text: "Ngày" },
-              },
-              y: {
-                title: { display: true, text: "°C" },
-              },
-            },
-          },
-        });
-
-        const humCtx = document
-          .getElementById("humidityChart")
-          .getContext("2d");
-        humidityChartInstance = new Chart(humCtx, {
-          type: "bar",
-          data: {
-            labels,
-            datasets: [
-              {
-                label: `Độ ẩm (%) - ${city}`,
-                data: hums,
-                backgroundColor: "rgba(37, 99, 235, 0.6)",
-                borderColor: "rgba(37, 99, 235, 1)",
-                borderWidth: 1,
-              },
-            ],
-          },
-          options: {
-            responsive: true,
-            scales: {
-              x: {
-                title: { display: true, text: "Ngày" },
-              },
-              y: {
-                title: { display: true, text: "%" },
-                beginAtZero: true,
-                max: 100,
-              },
-            },
-          },
-        });
+          currentTempEl.textContent = `${Number(info.temperature).toFixed(1)} °C`;
+          currentHumEl.textContent = `${Number(info.humidity).toFixed(0)} %`;
+          currentTimeLabel.textContent = `Cập nhật: ${formatFull(
+            info.loaded_at || info.date
+          )}`;
+        } catch (error) {
+          console.error("Error loading current data:", error);
+        }
       }
 
-      loadBtn.addEventListener("click", async () => {
-        await loadData();
-      });
+      async function loadSummary() {
+        const city = citySelect.value;
+        if (!city) return;
 
+        try {
+          const params = new URLSearchParams({ city });
+          if (fromDateInput.value) params.append("from", fromDateInput.value);
+          if (toDateInput.value) params.append("to", toDateInput.value);
+
+          let res = await fetch(`/api/summary?${params.toString()}`);
+          if (!res.ok) {
+            res = await fetch(`/api/demo/summary?${params.toString()}`);
+          }
+          const s = await res.json();
+          
+          if (!s) {
+            avgTempEl.textContent = "—";
+            daysCountEl.textContent = "—";
+            return;
+          }
+          avgTempEl.textContent = `${Number(s.avg_temp).toFixed(1)} °C`;
+          daysCountEl.textContent = s.days;
+        } catch (error) {
+          console.error("Error loading summary:", error);
+        }
+      }
+
+      async function loadSeries() {
+        const city = citySelect.value;
+        if (!city) return;
+
+        try {
+          const params = new URLSearchParams({ city });
+          if (fromDateInput.value) params.append("from", fromDateInput.value);
+          if (toDateInput.value) params.append("to", toDateInput.value);
+
+          let res = await fetch(`/api/temperature?${params.toString()}`);
+          if (!res.ok) {
+            res = await fetch(`/api/demo/data?${params.toString()}`);
+          }
+          currentData = await res.json();
+
+          if (!currentData || currentData.length === 0) {
+            showError("Không có dữ liệu cho khoảng thời gian đã chọn");
+            return;
+          }
+
+          const labels = currentData.map((row) => formatDateLabel(row.date));
+          const temps = currentData.map((row) => row.temperature);
+          const hums = currentData.map((row) => row.humidity);
+
+          // Update line chart
+          if (mainChartInstance) mainChartInstance.destroy();
+          const ctx = document.getElementById("mainChart").getContext("2d");
+          mainChartInstance = new Chart(ctx, {
+            type: "line",
+            data: {
+              labels,
+              datasets: [
+                {
+                  label: "Nhiệt độ 2m (°C)",
+                  data: temps,
+                  borderColor: "rgba(248, 113, 113, 1)",
+                  backgroundColor: "rgba(248, 113, 113, 0.18)",
+                  yAxisID: "y1",
+                  tension: 0.25,
+                  pointRadius: 2.5,
+                },
+                {
+                  label: "Độ ẩm (%)",
+                  data: hums,
+                  borderColor: "rgba(59, 130, 246, 1)",
+                  backgroundColor: "rgba(59, 130, 246, 0.18)",
+                  yAxisID: "y2",
+                  tension: 0.25,
+                  pointRadius: 2.5,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              interaction: {
+                mode: "index",
+                intersect: false,
+              },
+              scales: {
+                x: {
+                  grid: { color: "rgba(148, 163, 184, 0.1)" },
+                  title: { display: true, text: "Ngày" },
+                },
+                y1: {
+                  position: "left",
+                  title: { display: true, text: "°C" },
+                  grid: { color: "rgba(148, 163, 184, 0.05)" },
+                },
+                y2: {
+                  position: "right",
+                  title: { display: true, text: "%" },
+                  grid: { display: false },
+                  min: 0,
+                  max: 100,
+                },
+              },
+              plugins: {
+                legend: {
+                  labels: {
+                    color: "#e5e7eb",
+                  },
+                },
+              },
+            },
+          });
+
+          // Update table
+          tableBody.innerHTML = "";
+          currentData.forEach((row) => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+              <td>${formatFull(row.date)}</td>
+              <td>${Number(row.temperature).toFixed(1)}</td>
+              <td>${Number(row.humidity).toFixed(0)}</td>
+              <td>${row.loaded_at ? formatFull(row.loaded_at) : "—"}</td>
+            `;
+            tableBody.appendChild(tr);
+          });
+        } catch (error) {
+          console.error("Error loading series:", error);
+          showError("Lỗi khi tải dữ liệu chuỗi thời gian");
+        }
+      }
+
+      async function loadCompare() {
+        const selected = Array.from(compareSelect.selectedOptions).map(
+          (o) => o.value
+        );
+        if (selected.length === 0) {
+          if (compareChartInstance) compareChartInstance.destroy();
+          return;
+        }
+
+        try {
+          const params = new URLSearchParams({
+            cities: selected.join(","),
+          });
+
+          let res = await fetch(`/api/compare?${params.toString()}`);
+          if (!res.ok) {
+            res = await fetch(`/api/demo/compare?${params.toString()}`);
+          }
+          const data = await res.json();
+
+          const labels = data.map((d) => d.city);
+          const temps = data.map((d) => d.avg_temp);
+          const hums = data.map((d) => d.avg_humidity);
+
+          if (compareChartInstance) compareChartInstance.destroy();
+          const ctx = document.getElementById("compareChart").getContext("2d");
+          compareChartInstance = new Chart(ctx, {
+            type: "bar",
+            data: {
+              labels,
+              datasets: [
+                {
+                  label: "Avg Temp (°C)",
+                  data: temps,
+                  backgroundColor: "rgba(248, 113, 113, 0.8)",
+                },
+                {
+                  label: "Avg Humidity (%)",
+                  data: hums,
+                  backgroundColor: "rgba(59, 130, 246, 0.85)",
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              scales: {
+                x: {
+                  grid: { color: "rgba(148, 163, 184, 0.1)" },
+                },
+                y: {
+                  beginAtZero: true,
+                  grid: { color: "rgba(148, 163, 184, 0.08)" },
+                },
+              },
+              plugins: {
+                legend: {
+                  labels: { color: "#e5e7eb" },
+                },
+              },
+            },
+          });
+        } catch (error) {
+          console.error("Error loading comparison:", error);
+        }
+      }
+
+      function exportCsv() {
+        const city = citySelect.value;
+        if (!city) return;
+        const params = new URLSearchParams({ city });
+        if (fromDateInput.value) params.append("from", fromDateInput.value);
+        if (toDateInput.value) params.append("to", toDateInput.value);
+
+        // Call export API to download file
+        window.location.href = `/api/export/csv?${params.toString()}`;
+      }
+
+      async function loadAll() {
+        showLoading();
+        try {
+          await Promise.all([loadCurrent(), loadSummary(), loadSeries()]);
+          hideLoading();
+        } catch (error) {
+          console.error("Error loading data:", error);
+          hideLoading();
+          showError("Lỗi khi tải dữ liệu tổng hợp");
+        }
+      }
+
+      // Event listeners
+      loadBtn.addEventListener("click", loadAll);
+      exportBtn.addEventListener("click", exportCsv);
+      compareSelect.addEventListener("change", loadCompare);
+
+      // Initialize
       (async () => {
+        setDefaultDates();
         await loadCities();
-        await loadData();
+        if (citySelect.value) {
+          await loadAll();
+        }
       })();
     </script>
   </body>
